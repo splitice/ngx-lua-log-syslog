@@ -44,6 +44,8 @@ S.LOG_LOCAL5   =  (21 *8) -- reserved for local use */
 S.LOG_LOCAL6   =  (22 *8) -- reserved for local use */
 S.LOG_LOCAL7   =  (23 *8) -- reserved for local use */
 
+S.facility=S.LOG_LOCAL5
+
 local function mkprio(fac, sev)
     return fac + sev
 end
@@ -69,17 +71,17 @@ end
 S.syslog = syslog;
 
 local function log_notice(msg)
-   syslog(S.LOG_LOCAL5, S.LOG_NOTICE, S.tag, msg)
+   syslog(S.facility, S.LOG_NOTICE, S.tag, msg)
 end
 S.log_notice = log_notice
 
 local function log_error(msg)
-   syslog(S.LOG_LOCAL5, S.LOG_ERR, S.tag, msg)
+   syslog(S.facility, S.LOG_ERR, S.tag, msg)
 end
 S.log_error = log_error
 
 local function log_warning(msg)
-   syslog(S.LOG_LOCAL5, S.LOG_WARNING, S.tag, msg)
+   syslog(S.facility, S.LOG_WARNING, S.tag, msg)
 end
 S.log_warning = log_warning
 
