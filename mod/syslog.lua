@@ -2,11 +2,13 @@
 
 local socket = require 'socket'
 local S = {hostname="localhost",tag="ngxlua",destination_addr="127.0.0.1",destination_port=514}
-local udpsock = socket.udp()
-if not ngx then
+
+if ngx then
 	local pid = ngx.worker.pid()
+	local udpsock = ngx.socket.udp()
 else
 	local pid = -1
+	local udpsock = socket.udp()
 end
 
 -- contants from <sys/syslog.h>
