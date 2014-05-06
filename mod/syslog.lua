@@ -61,7 +61,6 @@ S.mkprio = mkprio
 --end
 
 local function mklogline(fac, sev, tag, msg)
-    local prio_field = string.format("<%d>", mkprio(fac, sev))
     return table.concat(("<", mkprio(fac, sev) ">" , self.myhostname, " ", tag, "[", pid, "]", ": ", msg})
 end
 
