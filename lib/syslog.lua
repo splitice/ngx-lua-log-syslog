@@ -1,14 +1,15 @@
+--
 #!/usr/bin/lua5.1
 
 local socket = require 'socket'
 local S = {hostname="localhost",tag="ngxlua",destination_addr="127.0.0.1",destination_port=514}
 
 if ngx then
-	local pid = ngx.worker.pid()
-	local udpsock = ngx.socket.udp()
+    local pid = ngx.worker.pid()
+    local udpsock = ngx.socket.udp()
 else
-	local pid = -1
-	local udpsock = socket.udp()
+    local pid = -1
+    local udpsock = socket.udp()
 end
 
 -- contants from <sys/syslog.h>
@@ -61,26 +62,26 @@ S.mkprio = mkprio
 --end
 
 local function mklogline(fac, sev, tag, msg)
-    return table.concat(("<", mkprio(fac, sev) ">" , self.myhostname, " ", tag, "[", pid, "]", ": ", msg})
+    return table.concat({"<", mkprio(fac, sev) ">" , S.myhostname, " ", tag, "[", pid, "]", ": ", msg})
 end
 
 local function syslog(fac, sev, tag, msg)
-    udpsock:sendto(mklogline(fac, sev, tag, msg), S.destination_addr, S.destination_port)
+udpsock:sendto(mklogline(fac, sev, tag, msg), S.destination_addr, S.destination_port)
 end
 S.syslog = syslog;
 
 local function log_notice(msg)
-   syslog(S.facility, S.LOG_NOTICE, S.tag, msg)
+syslog(S.facility, S.LOG_NOTICE, S.tag, msg)
 end
 S.log_notice = log_notice
 
 local function log_error(msg)
-   syslog(S.facility, S.LOG_ERR, S.tag, msg)
+syslog(S.facility, S.LOG_ERR, S.tag, msg)
 end
 S.log_error = log_error
 
 local function log_warning(msg)
-   syslog(S.facility, S.LOG_WARNING, S.tag, msg)
+syslog(S.facility, S.LOG_WARNING, S.tag, msg)
 end
 S.log_warning = log_warning
 
