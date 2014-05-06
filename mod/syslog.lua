@@ -1,83 +1,84 @@
 #!/usr/bin/lua5.1
 
-local S = {}
+local socket = require 'socket'
+local S = {hostname="localhost",tag="ngxlua",destination_addr="127.0.0.1",destination_port=514}
+local udpsock = socket.udp()
+if not ngx then
+	local pid = ngx.worker.pid()
+else
+	local pid = -1
+end
 
 -- contants from <sys/syslog.h>
-LOG_EMERG    =  0       -- system is unusable */
-LOG_ALERT    =  1       -- action must be taken immediately */
-LOG_CRIT     =  2       -- critical conditions */
-LOG_ERR      =  3       -- error conditions */
-LOG_WARNING  =  4       -- warning conditions */
-LOG_NOTICE   =  5       -- normal but significant condition */
-LOG_INFO     =  6       -- informational */
-LOG_DEBUG    =  7       -- debug-level messages */
+S.LOG_EMERG    =  0       -- system is unusable */
+S.LOG_ALERT    =  1       -- action must be taken immediately */
+S.LOG_CRIT     =  2       -- critical conditions */
+S.LOG_ERR      =  3       -- error conditions */
+S.LOG_WARNING  =  4       -- warning conditions */
+S.LOG_NOTICE   =  5       -- normal but significant condition */
+S.LOG_INFO     =  6       -- informational */
+S.LOG_DEBUG    =  7       -- debug-level messages */
 
-LOG_KERN     =  (0 *8)  -- kernel messages */
-LOG_USER     =  (1 *8)  -- random user-level messages */
-LOG_MAIL     =  (2 *8)  -- mail system */
-LOG_DAEMON   =  (3 *8)  -- system daemons */
-LOG_AUTH     =  (4 *8)  -- security/authorization messages */
-LOG_SYSLOG   =  (5 *8)  -- messages generated internally by syslogd */
-LOG_LPR      =  (6 *8)  -- line printer subsystem */
-LOG_NEWS     =  (7 *8)  -- network news subsystem */
-LOG_UUCP     =  (8 *8)  -- UUCP subsystem */
-LOG_CRON     =  (9 *8)  -- clock daemon */
-LOG_AUTHPRIV =  (10 *8) -- security/authorization messages (private) */
-LOG_FTP      =  (11 *8) -- ftp daemon */
+S.LOG_KERN     =  (0 *8)  -- kernel messages */
+S.LOG_USER     =  (1 *8)  -- random user-level messages */
+S.LOG_MAIL     =  (2 *8)  -- mail system */
+S.LOG_DAEMON   =  (3 *8)  -- system daemons */
+S.LOG_AUTH     =  (4 *8)  -- security/authorization messages */
+S.LOG_SYSLOG   =  (5 *8)  -- messages generated internally by syslogd */
+S.LOG_LPR      =  (6 *8)  -- line printer subsystem */
+S.LOG_NEWS     =  (7 *8)  -- network news subsystem */
+S.LOG_UUCP     =  (8 *8)  -- UUCP subsystem */
+S.LOG_CRON     =  (9 *8)  -- clock daemon */
+S.LOG_AUTHPRIV =  (10 *8) -- security/authorization messages (private) */
+S.LOG_FTP      =  (11 *8) -- ftp daemon */
 
 -- other codes through 15 reserved for system use */
-LOG_LOCAL0   =  (16 *8) -- reserved for local use */
-LOG_LOCAL1   =  (17 *8) -- reserved for local use */
-LOG_LOCAL2   =  (18 *8) -- reserved for local use */
-LOG_LOCAL3   =  (19 *8) -- reserved for local use */
-LOG_LOCAL4   =  (20 *8) -- reserved for local use */
-LOG_LOCAL5   =  (21 *8) -- reserved for local use */
-LOG_LOCAL6   =  (22 *8) -- reserved for local use */
-LOG_LOCAL7   =  (23 *8) -- reserved for local use */
+S.LOG_LOCAL0   =  (16 *8) -- reserved for local use */
+S.LOG_LOCAL1   =  (17 *8) -- reserved for local use */
+S.LOG_LOCAL2   =  (18 *8) -- reserved for local use */
+S.LOG_LOCAL3   =  (19 *8) -- reserved for local use */
+S.LOG_LOCAL4   =  (20 *8) -- reserved for local use */
+S.LOG_LOCAL5   =  (21 *8) -- reserved for local use */
+S.LOG_LOCAL6   =  (22 *8) -- reserved for local use */
+S.LOG_LOCAL7   =  (23 *8) -- reserved for local use */
 
-S.myhostname = "localhost"
-
-function S.mkprio(fac, sev)
+local function mkprio(fac, sev)
     return fac + sev
 end
+S.mkprio = mkprio
 
 -- parameter is unix time or nil if now
-function S.iso_timestamp(uts)
-    tz = os.date("*t", uts).hour - os.date("!*t", uts).hour
-    if tz < 0 then tz = tz + 24 end
-    tzs = string.format("%.4d", tz * 100)
-    ts = os.date("%Y-%m-%dT%H:%M:%S+", uts)
-    return ts .. tzs
+--local function iso_timestamp(uts)
+--    tz = os.date("*t", uts).hour - os.date("!*t", uts).hour
+--    if tz < 0 then tz = tz + 24 end
+--    tzs = string.format("%.4d", tz * 100)
+--    ts = os.date("%Y-%m-%dT%H:%M:%S+", uts)
+--    return ts .. tzs
+--end
+
+local function mklogline(fac, sev, tag, msg)
+    local prio_field = string.format("<%d>", mkprio(fac, sev))
+    return table.concat(("<", mkprio(fac, sev) ">" , self.myhostname, " ", tag, "[", pid, "]", ": ", msg})
 end
 
--- timestamp is now added by syslogd (rsyslog)
-function S:mklogline(fac, sev, tag, pid, msg)
-    prio_field = string.format("<%d>", S.mkprio(fac, sev))
-    if pid and (pid > 0) then
-        pid_field = string.format("[%d]", pid)
-    else
-        pid_field = ""
-    end
-    host_field = self.myhostname
-    return prio_field .. host_field .. " " .. tag .. pid_field .. ": " .. msg
+local function syslog(fac, sev, tag, msg)
+    udpsock:sendto(mklogline(fac, sev, tag, msg), S.destination_addr, S.destination_port)
 end
+S.syslog = syslog;
 
-function S:log(fac, sev, tag, pid, msg)
-    socket = require 'socket'
-    udpsock = socket.udp()
-    udpsock:sendto(self:mklogline(fac, sev, tag, pid, msg), "127.0.0.1", 5140)
+local function log_notice(msg)
+   syslog(LOG_LOCAL5, LOG_NOTICE, S.tag, msg)
 end
+S.log_notice = log_notice
 
-function S.notice(msg)
-   syslog.log(LOG_LOCAL5, LOG_NOTICE, "smartrouter", nil, msg)
+local function log_error(msg)
+   syslog(LOG_LOCAL5, LOG_ERR, S.tag, msg)
 end
+S.log_error = log_error
 
-function S.error(msg)
-   syslog.log(LOG_LOCAL5, LOG_ERR, "smartrouter", nil, msg)
+local function log_warning(msg)
+   syslog(LOG_LOCAL5, LOG_WARNING, S.tag, msg)
 end
-
-function S.warning(msg)
-   syslog.log(LOG_LOCAL5, LOG_WARNING, "smartrouter", nil, msg)
-end
+S.log_warning = log_warning
 
 return S
