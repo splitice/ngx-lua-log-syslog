@@ -1,5 +1,5 @@
 
-syslog = require 'mod.syslog'
+syslog = require 'lib.syslog'
 
 if not ngx then
     ngx = {}
@@ -36,5 +36,5 @@ local loglevel = ngx.var.access_logfacility or LOG_INFO
 local logtag = ngx.var.access_logtag or "nginx-lua"
 
 
-syslog:log(logfacility, loglevel, logtag, 0, logline)
+syslog:syslog(logfacility, loglevel, logtag, 0, logline)
 
