@@ -67,17 +67,17 @@ end
 S.syslog = syslog;
 
 local function log_notice(msg)
-   syslog(LOG_LOCAL5, LOG_NOTICE, S.tag, msg)
+   syslog(S.LOG_LOCAL5, S.LOG_NOTICE, S.tag, msg)
 end
 S.log_notice = log_notice
 
 local function log_error(msg)
-   syslog(LOG_LOCAL5, LOG_ERR, S.tag, msg)
+   syslog(S.LOG_LOCAL5, S.LOG_ERR, S.tag, msg)
 end
 S.log_error = log_error
 
 local function log_warning(msg)
-   syslog(LOG_LOCAL5, LOG_WARNING, S.tag, msg)
+   syslog(S.LOG_LOCAL5, S.LOG_WARNING, S.tag, msg)
 end
 S.log_warning = log_warning
 
